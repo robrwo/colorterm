@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Name: $Id: colorterm 2009/01/23 12:44:37 GMT rr@dwaible $ 
-# Version: 0.4.2
-# Author: Robert Rothenberg <rr@cs.st-andrews.ac.uk>
+# Name: $Id: colorterm 2010/06/02 11:48:26 BST rr@sma $ 
+# Version: 0.4.3
+# Author: Robert Rothenberg <robrwo@gmail.com>
 #
 # This is a bash script which launches shells with different color
 # schemes dependening on current number of terminal windows are open
