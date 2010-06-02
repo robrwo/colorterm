@@ -1,0 +1,122 @@
+#!/bin/bash
+
+# Name: $Id: colorterm 2009/01/23 12:44:37 GMT rr@dwaible $ 
+# Version: 0.4.2
+# Author: Robert Rothenberg <rr@cs.st-andrews.ac.uk>
+#
+# This is a bash script which launches shells with different color
+# schemes dependening on current number of terminal windows are open
+# on the desktop.
+#
+# Requires: wmctrl <http://www.sweb.cz/tripie/utils/wmctrl>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# Instructions: this defaults to using xterm.  If you want to
+# customize it, create a ~/.colortermrc file.  For xterm and similar
+# programs, you specify foreground and background colors in the same
+# format below.
+
+XTERM_FGCOLORS=(black black black   black )
+XTERM_BGCOLORS=(white cyan  skyblue yellow)
+
+# When using gnome-terminal or roxterm, you need to add profiles or
+# color schemes.
+#
+# Known issues: for gnome-terminal, we cannot control the order of the
+# profiles.
+#
+# History:
+#
+#  0.3.0  - First public release
+#  0.4.0  - Added support for aterm, xvt, xiterm, pterm, wterm, mlterm,
+#           and kterm
+#	  - Added COLORTERM_OPTIONS parameter in .colortermrc file
+#         - Added COLORTERM_CMD for alternative command
+#  0.4.1  - Added disown of spawned shells
+
+
+if [ -f "$HOME/.colortermrc" ]; then
+  . "$HOME/.colortermrc"
+fi
+
+terminal=$COLORTERM
+if [ -z "$terminal" ]; then
+  terminal=$TERM
+fi
+
+# In case we want a different command run than we use to configure
+# this.  (e.g. we have a program with similar options to xterm but not
+# listed here.)
+
+terminal_cmd=$COLORTERM_CMD
+if [ -z "$terminal_cmd" ]; then
+  terminal_cmd=$terminal
+fi
+
+# Fallback terminal program
+if [ "$terminal" == "dumb" ]; then
+  terminal=xterm
+fi
+
+# 
+
+desktop=`wmctrl -d |grep \* |cut -d\  -f 1`
+count=`wmctrl -lx |awk '{print $2, $3}' | grep $desktop\ ${terminal_cmd}|wc -l`
+
+case "$terminal" in
+
+ xterm*|rxvt*|mrxvt*|urxvt*|aterm*|xvt|xiterm|pterm|wterm|mlterm|kterm)
+
+   ibg=$(( $count % ${#XTERM_BGCOLORS[*]} ))
+   ifg=$(( $count % ${#XTERM_FGCOLORS[*]} ))
+
+   ${terminal_cmd} -bg ${XTERM_BGCOLORS[$ibg]} -fg ${XTERM_FGCOLORS[$ifg]} $COLORTERM_OPTIONS $@ &
+   disown $!
+   ;;
+
+ gnome-terminal)
+
+   # for gnome-terminal, we query profiles from gnome configuration
+
+   n=`gconftool-2 --get-list-size /apps/gnome-terminal/global/profile_list`
+   i=$(( $count % $n ))
+   s=`gconftool-2 --get-list-element /apps/gnome-terminal/global/profile_list $i`
+
+   ${terminal_cmd} --window-with-profile-internal-id=$s $COLORTERM_OPTIONS $@ &
+   disown $!
+   ;;
+
+ roxterm)
+
+   # For roxterm, we get color schemes from roxterm Colour Profiles directory
+
+   schemes=(`ls -1 $HOME/.config/roxterm.sourceforge.net/Colours`)
+   n=${#schemes[*]}
+   i=$(( $count % $n ))
+ 
+   ${terminal_cmd} --colour_scheme=${schemes[$i]} $COLORTERM_OPTIONS $@ &
+   disown $!
+
+ ;;
+
+ *)
+
+   ${terminal_cmd} $COLORTERM_OPTIONS $@ &
+   disown $!
+ ;;
+esac
+
+exit 0
+
+
+
+
